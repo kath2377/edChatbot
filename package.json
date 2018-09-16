@@ -1,0 +1,23 @@
+{
+  "name": "edchatbot",
+  "version": "1.0.0",
+  "description": "adaptive chatbot",
+  "main": "main.js",
+  "dependencies": {
+    "actions-on-google": "^2.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "npm run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kath2377/edChatbot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kath2377/edChatbot/issues"
+  },
+  "homepage": "https://github.com/kath2377/edChatbot#readme"
+}
