@@ -1,0 +1,23 @@
+[
+    {
+        "dimension1":2.0,
+        "dimension2":2.0,
+        "dimension3":3.0,
+        "dimension4":3.0,
+        "profile":"prof1"
+    },
+    {
+        "dimension1":11.0,
+        "dimension2":9.0,
+        "dimension3":9.0,
+        "dimension4":8.0,
+        "profile":"prof2"
+    },
+    {
+        "dimension1":-7.0,
+        "dimension2":-8.0,
+        "dimension3":-7.0,
+        "dimension4":-5.0,
+        "profile":"prof3"
+    }
+]

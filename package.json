@@ -4,11 +4,14 @@
   "description": "adaptive chatbot",
   "main": "main.js",
   "dependencies": {
-    "actions-on-google": "^2.3.0"
+    "@tensorflow/tfjs": "^0.13.0",
+    "@tensorflow/tfjs-node": "^0.1.17",
+    "actions-on-google": "^2.3.0",
+    "express": "^4.16.3"
   },
   "devDependencies": {},
   "scripts": {
-    "test": "npm run"
+    "start": "node src/main.js"
   },
   "repository": {
     "type": "git",
