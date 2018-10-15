@@ -1,0 +1,37 @@
+[
+    {
+        "dimension1":1.0,
+        "dimension2":2.0,
+        "dimension3":1.0,
+        "dimension4":1.0,
+        "profile":"prof1"
+    },
+    {
+        "dimension1":0.0,
+        "dimension2":0.0,
+        "dimension3":3.0,
+        "dimension4":0.0,
+        "profile":"prof1"
+    },
+    {
+        "dimension1":10.0,
+        "dimension2":10.0,
+        "dimension3":10.0,
+        "dimension4":9.0,
+        "profile":"prof2"
+    },
+    {
+        "dimension1":10.0,
+        "dimension2":8.0,
+        "dimension3":7.0,
+        "dimension4":9.0,
+        "profile":"prof2"
+    },
+    {
+        "dimension1":-9.0,
+        "dimension2":-9.0,
+        "dimension3":-8.0,
+        "dimension4":-6.0,
+        "profile":"prof3"
+    }
+]
