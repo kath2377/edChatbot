@@ -36,7 +36,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     agent.add('Bienvenida de nuevo ' + nameParam);
                 }
                 return Promise.resolve('done');
-            }).catch(error => console.log('ERROR: ' + error));
+            }).catch(error => console.log('ERROR - saveName: ' + error));
     }
 
 
@@ -57,11 +57,21 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             agent.add(new Suggestion('Gracias'));
             })
             return Promise.resolve('done');
-        }).catch(error => console.log('ERROR: ' + error));
+        }).catch(error => console.log('ERROR - sendVideo: ' + error));
+    }
+
+    function solveConceptQuestion(agent){
+        const conceptName = agent.parameters.conceptName;
+        firebaseAdmin.firestore().collection('learningUnits/{unitId}/topics').where('keywords','array-contains',conceptName).limit(1).get()
+        .then(snapshot => {
+            console.log('topic name = '+snapshot[0].data().name);
+        }).catch(error => console.log('ERROR - solveConceptQuestion: ' + error));
+
     }
 
     let intentMap = new Map();
     intentMap.set('SaveMyName', saveName);
     intentMap.set('WatchVideo', sendVideo);
+    intentMap.set('AskForConcept', solveConceptQuestion);
     return agent.handleRequest(intentMap);
 });
