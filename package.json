@@ -1,0 +1,26 @@
+{
+  "name": "edchatbot",
+  "version": "1.0.0",
+  "description": "adaptive chatbot",
+  "main": "main.js",
+  "dependencies": {
+    "@tensorflow/tfjs": "^0.13.0",
+    "@tensorflow/tfjs-node": "^0.1.17",
+    "actions-on-google": "^2.3.0",
+    "express": "^4.16.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node src/main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kath2377/edChatbot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kath2377/edChatbot/issues"
+  },
+  "homepage": "https://github.com/kath2377/edChatbot#readme"
+}
