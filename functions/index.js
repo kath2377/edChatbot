@@ -82,7 +82,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     //options not related to Intents
     function sendLearningObject(agent, topicId) {
-        return firebaseAdmin.firestore().collection('learningObjects').where('topicId', '==', topicId).limit(1).get()
+        return firebaseAdmin.firestore().collection('learningObjects').where('topicId', '==', topicId).get()
             .then(snapshot => {
                 const learningObject = snapshot.docs[0];
                 if (!learningObject) {
@@ -111,6 +111,10 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         }
         console.log('the end');
         return Promise.resolve('done');
+    }
+
+    function getMaterialTypesByUser(userId){
+        return firebaseAdmin.firestore().collection('userProfiles').where('userId','==',userId)
     }
 
     let intentMap = new Map();
