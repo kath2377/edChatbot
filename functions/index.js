@@ -84,7 +84,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     }
 
-    //options not related to Intents
+    //functions not related to Intents
     function sendLearningObject(agent, topicId, materialType) {
         return firebaseAdmin.firestore().collection('learningObjects').where('topicId', '==', topicId).where('type', '==', materialType).get()
             .then(snapshot => {
