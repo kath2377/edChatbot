@@ -34,6 +34,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                 else {
                     console.log('User already exists');
                     agent.add('Bienvenida de nuevo ' + nameParam);
+                    console.log('username by CONV = '+conv.user.name);
                 }
                 return Promise.resolve('done');
             }).catch(error => console.log('ERROR: ' + error));
