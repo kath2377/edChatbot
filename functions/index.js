@@ -74,15 +74,19 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                 else {
                     console.log('topic name = ' + topic.data().name);
                     console.log('topic id = ' + topic.id);
-                    return sendLearningObject(agent, topic.id);
+                    return getMaterialTypeByUser('1bcBLDdYfq4W8ms2NcV8').then(materialType => {
+                        console.log('materialType = ' + materialType);
+                        return sendLearningObject(agent, topic.id, materialType);
+                    }
+                    ).catch(error => console.log('ERROR - getMaterialTypeByUser: ' + error));
                 }
             }).catch(error => console.log('ERROR - solveConceptQuestion: ' + error));
 
     }
 
     //options not related to Intents
-    function sendLearningObject(agent, topicId) {
-        return firebaseAdmin.firestore().collection('learningObjects').where('topicId', '==', topicId).get()
+    function sendLearningObject(agent, topicId, materialType) {
+        return firebaseAdmin.firestore().collection('learningObjects').where('topicId', '==', topicId).where('type', '==', materialType).get()
             .then(snapshot => {
                 const learningObject = snapshot.docs[0];
                 if (!learningObject) {
@@ -97,7 +101,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     }
 
     function showLearningObject(agent, learningObject) {
-        console.log('object type: '+learningObject.data().type);
+        console.log('object type: ' + learningObject.data().type);
         if (learningObject.data().type === 'image' || learningObject.data().type === 'video') {
             console.log('it is an image or a video');
             agent.add(new Card({
@@ -113,8 +117,14 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         return Promise.resolve('done');
     }
 
-    function getMaterialTypesByUser(userId){
-        return firebaseAdmin.firestore().collection('userProfiles').where('userId','==',userId)
+    function getMaterialTypeByUser(userId) {
+        return firebaseAdmin.firestore().collection('userProfiles').where('userId', '==', userId).get()
+            .then(snapshot => {
+                const userProfile = snapshot.docs[0];
+                const chosenMaterialType = userProfile.data().materialTypes[0];
+                console.log('chosen material type : ' + chosenMaterialType);
+                return chosenMaterialType;
+            }).catch(error => console.log('ERROR - getMaterialTypesByUser: ' + error));
     }
 
     let intentMap = new Map();
