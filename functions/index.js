@@ -35,7 +35,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                 else {
                     console.log('User already exists');
                     agent.add('Bienvenida de nuevo ' + nameParam);
-                    console.log('username by CONV = '+conv.user.name);
                 }
                 return Promise.resolve('done');
             }).catch(error => console.log('ERROR - saveName: ' + error));
@@ -85,6 +84,19 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     }
 
+    function welcome(agent) {
+        let userId = getUserId();
+        return getUserNameByUserId(userId).then(username => {
+            if (username != null) {
+                return agent.add('Hey hola ' + username);
+            }
+            else {
+                saveNewUser('', userId, userId.length > 20 ? 'google' : 'facebook');
+                return agent.add('¡Eres nuevo!');
+            }
+        }).catch(error => console.log('ERROR - welcome: ' + error));
+    }
+
     //functions not related to Intents
     function sendLearningObject(agent, topicId, materialType) {
         return firebaseAdmin.firestore().collection('learningObjects').where('topicId', '==', topicId).where('type', '==', materialType).get()
@@ -128,9 +140,51 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             }).catch(error => console.log('ERROR - getMaterialTypesByUser: ' + error));
     }
 
+    function getUserId() {
+        if (request.body.originalDetectIntentRequest.payload.source == 'facebook') {
+            console.log('facebookUserId = ' + request.body.originalDetectIntentRequest.payload.data.sender.id);
+            return request.body.originalDetectIntentRequest.payload.data.sender.id;
+        }
+        else if (request.body.originalDetectIntentRequest.source == 'google') {
+            console.log('googleUserId = ' + request.body.originalDetectIntentRequest.payload.user.userId);
+            return request.body.originalDetectIntentRequest.payload.user.userId;
+        }
+    }
+
+    function getUserNameByUserId(userId) {
+        return firebaseAdmin.firestore().collection('users').where('facebookUserId', '==', userId).limit(1).get()
+            .then(snapshot => {
+                let user = snapshot.docs[0];
+                if (!user) {
+                    return firebaseAdmin.firestore().collection('users').where('googleUserId', '==', userId).limit(1).get()
+                        .then(snapshot => {
+                            user = snapshot.docs[0];
+                            if (!user) {
+                                return null;
+                            }
+                            else {
+                                return user.data().name;
+                            }
+                        }).catch(error => console.log('ERROR - saveName: ' + error));
+                }
+                else {
+                    return user.data().name;
+                }
+            }).catch(error => console.log('ERROR - saveName: ' + error));
+    }
+
+    function saveNewUser(name, userId, platformType) {
+        return firebaseAdmin.firestore().collection('users').add({
+            name: name,
+            facebookUserId: platformType == 'facebook' ? userId : '',
+            googleUserId: platformType == 'google' ? userId : '',
+        });
+    }
+
     let intentMap = new Map();
     intentMap.set('SaveMyName', saveName);
     intentMap.set('WatchVideo', sendVideo);
     intentMap.set('AskForConcept', solveConceptQuestion);
+    intentMap.set('Default Welcome Intent', welcome);
     return agent.handleRequest(intentMap);
 });
