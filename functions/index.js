@@ -88,11 +88,11 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let userId = getUserId();
         return getUserNameByUserId(userId).then(username => {
             if (username != null) {
-                return agent.add('Hey hola ' + username);
+                return agent.add('Hola ' + username);
             }
             else {
                 saveNewUser('', userId, userId.length > 20 ? 'google' : 'facebook');
-                return agent.add('¡Eres nuevo!');
+                return agent.add('¡Eres nuevo! ¿Cómo te llamas?');
             }
         }).catch(error => console.log('ERROR - welcome: ' + error));
     }
