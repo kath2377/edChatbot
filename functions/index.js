@@ -13,6 +13,9 @@ const { WebhookClient } = require('dialogflow-fulfillment');
 const { Card, Suggestion } = require('dialogflow-fulfillment');
 firebaseAdmin.initializeApp(functions.config().firebase);
 
+const DEFAULT_UNIT_ID = 'gIhqWazA4yaOGY6zDKsr';
+const GLOBAL_CONTENT_PRESENTATION = 'global';
+
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, response) => {
     const agent = new WebhookClient({ request, response });
     console.log('Dialogflow Request headers: ' + JSON.stringify(request.headers));
@@ -85,13 +88,33 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     }
 
     function welcome(agent) {
-        let userId = getUserId();
-        return getUserNameByUserId(userId).then(username => {
+        let accountUserId = getAccountUserId();
+        return getUserNameByAccountUserId(accountUserId).then(username => {
             if (username != null) {
-                return agent.add('Hola ' + username);
+                return getUserIdByAccountUserId(accountUserId).then(userId => {
+                    console.log('userId found for accountUserId = ' + userId);
+                    //const topics = getContentTopicsByUnitId(DEFAULT_UNIT_ID);
+                    return getContentPresentationByUser(userId).then(contentPresentation => {
+                        if (contentPresentation == GLOBAL_CONTENT_PRESENTATION) {
+                            return getContentTopicsByUnitId(DEFAULT_UNIT_ID).then(topics => {
+                                agent.add('Hola ' + username +' ¿Qué tema deseas ver hoy?');
+                                console.log('Topics array:' + JSON.stringify(topics));
+                                topics.forEach(topicName => agent.add(new Suggestion(topicName)));
+                                return Promise.resolve("done");
+                            });
+
+                        }
+                        else {
+                            agent.add('Hola ' + username);
+                            return Promise.resolve('done');
+                        }
+
+                    });
+
+                });
             }
             else {
-                saveNewUser('', userId, userId.length > 20 ? 'google' : 'facebook');
+                saveNewUser('', accountUserId, accountUserId.length > 20 ? 'google' : 'facebook');
                 return agent.add('¡Eres nuevo! ¿Cómo te llamas?');
             }
         }).catch(error => console.log('ERROR - welcome: ' + error));
@@ -140,7 +163,17 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             }).catch(error => console.log('ERROR - getMaterialTypesByUser: ' + error));
     }
 
-    function getUserId() {
+    function getContentPresentationByUser(userId) {
+        return firebaseAdmin.firestore().collection('userProfiles').where('userId', '==', userId).get()
+            .then(snapshot => {
+                const userProfile = snapshot.docs[0];
+                const contentPresentation = userProfile.data().contentPresentation;
+                console.log('contentPresentation : ' + contentPresentation);
+                return contentPresentation;
+            }).catch(error => console.log('ERROR - getContentPresentationByUser: ' + error));
+    }
+
+    function getAccountUserId() {
         if (request.body.originalDetectIntentRequest.payload.source == 'facebook') {
             console.log('facebookUserId = ' + request.body.originalDetectIntentRequest.payload.data.sender.id);
             return request.body.originalDetectIntentRequest.payload.data.sender.id;
@@ -151,12 +184,34 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         }
     }
 
-    function getUserNameByUserId(userId) {
-        return firebaseAdmin.firestore().collection('users').where('facebookUserId', '==', userId).limit(1).get()
+    function getUserIdByAccountUserId(accountUserId) {
+        return firebaseAdmin.firestore().collection('users').where('facebookUserId', '==', accountUserId).limit(1).get()
             .then(snapshot => {
                 let user = snapshot.docs[0];
                 if (!user) {
-                    return firebaseAdmin.firestore().collection('users').where('googleUserId', '==', userId).limit(1).get()
+                    return firebaseAdmin.firestore().collection('users').where('googleUserId', '==', accountUserId).limit(1).get()
+                        .then(snapshot => {
+                            user = snapshot.docs[0];
+                            if (!user) {
+                                return null;
+                            }
+                            else {
+                                return user.id;
+                            }
+                        }).catch(error => console.log('ERROR - getUserIdByAccountUserId: ' + error));
+                }
+                else {
+                    return user.id;
+                }
+            }).catch(error => console.log('ERROR - getUserIdByAccountUserId: ' + error));
+    }
+
+    function getUserNameByAccountUserId(accountUserId) {
+        return firebaseAdmin.firestore().collection('users').where('facebookUserId', '==', accountUserId).limit(1).get()
+            .then(snapshot => {
+                let user = snapshot.docs[0];
+                if (!user) {
+                    return firebaseAdmin.firestore().collection('users').where('googleUserId', '==', accountUserId).limit(1).get()
                         .then(snapshot => {
                             user = snapshot.docs[0];
                             if (!user) {
@@ -165,12 +220,12 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                             else {
                                 return user.data().name;
                             }
-                        }).catch(error => console.log('ERROR - saveName: ' + error));
+                        }).catch(error => console.log('ERROR - getUserNameByAccountUserId: ' + error));
                 }
                 else {
                     return user.data().name;
                 }
-            }).catch(error => console.log('ERROR - saveName: ' + error));
+            }).catch(error => console.log('ERROR - getUserNameByAccountUserId: ' + error));
     }
 
     function saveNewUser(name, userId, platformType) {
@@ -179,6 +234,18 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             facebookUserId: platformType == 'facebook' ? userId : '',
             googleUserId: platformType == 'google' ? userId : '',
         });
+    }
+
+    function getContentTopicsByUnitId(unitId) {
+        return firebaseAdmin.firestore().collection('learningTopics').where('unitId', '==', unitId).get()
+            .then(snapshot => {
+                let topics = [];
+                snapshot.forEach((topic) => {
+                    console.log('topic id: ' + topic.id);
+                    topics.push(topic.data().name);
+                });
+                return topics;
+            }).catch(error => console.log('ERROR - getContentTopicsByUnitId: ' + error));
     }
 
     let intentMap = new Map();
