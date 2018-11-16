@@ -1,6 +1,5 @@
 'use strict';
 const functions = require('firebase-functions');
-const videoPlayerThumbnail = 'https://www.nocreasnada.com/wp-content/uploads/2018/08/2018-08-27_5b8418533078a_Using-Videos-Affiliate-Marketing.jpg';
 
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
@@ -15,6 +14,8 @@ firebaseAdmin.initializeApp(functions.config().firebase);
 
 const DEFAULT_UNIT_ID = 'gIhqWazA4yaOGY6zDKsr';
 const GLOBAL_CONTENT_PRESENTATION = 'global';
+const VIDEO_ICON = 'https://www.nocreasnada.com/wp-content/uploads/2018/08/2018-08-27_5b8418533078a_Using-Videos-Affiliate-Marketing.jpg';
+const TEXT_ICON = 'https://us.123rf.com/450wm/ylivdesign/ylivdesign1610/ylivdesign161006846/64642750-open-book-icon-flat-illustration-of-open-book-vector-icon-for-web.jpg?ver=6';
 
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, response) => {
     const agent = new WebhookClient({ request, response });
@@ -52,7 +53,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     console.log('video name: ' + video.data().name);
                     agent.add(new Card({
                         title: video.data().name,
-                        imageUrl: videoPlayerThumbnail,
+                        imageUrl: VIDEO_ICON,
                         text: '¡Mira este video!',
                         buttonText: 'Ver video',
                         buttonUrl: video.data().url
@@ -65,9 +66,14 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     }
 
     function solveConceptQuestion(agent) {
-        const conceptName = agent.parameters.conceptName;
-        console.log('conceptNameee = ' + conceptName);
-        console.log('user-data: '+JSON.stringify(agent.getContext('user-data').parameters));
+        let conceptName;
+        if (agent.getContext('topic-choice')) {
+            conceptName = agent.getContext('topic-choice').parameters.topicKeyword;
+        }
+        else {
+            conceptName = agent.parameters.conceptName;
+        }
+        console.log('user-data: ' + JSON.stringify(agent.getContext('user-data').parameters));
         return firebaseAdmin.firestore().collection('learningTopics').where('keywords', 'array-contains', conceptName).limit(1).get()
             .then(snapshot => {
                 const topic = snapshot.docs[0];
@@ -101,6 +107,10 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     });
                     return getContentPresentationByUser(userId).then(contentPresentation => {
                         if (contentPresentation == GLOBAL_CONTENT_PRESENTATION) {
+                            agent.setContext({
+                                name: 'topic-choice',
+                                lifespan: 1
+                            });
                             return getContentTopicsByUnitId(DEFAULT_UNIT_ID).then(topics => {
                                 agent.add('Hola ' + username + ' ¿Qué tema deseas ver hoy?');
                                 console.log('Topics array:' + JSON.stringify(topics));
@@ -134,7 +144,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         agent.add('¡Felicidades! ¿Puedo hacerte unas preguntas?');
     }
     function askQuestion(agent) {
-        console.log('context:::::::: '+agent.getContext('topic-finished')+' o '+JSON.stringify(agent.getContext('topic-finished')));
+        console.log('context:::::::: ' + agent.getContext('topic-finished') + ' o ' + JSON.stringify(agent.getContext('topic-finished')));
         const topicKeyword = agent.getContext('topic-finished').parameters.topicKeyword;
         return firebaseAdmin.firestore().collection('learningTopics').where('keywords', 'array-contains', topicKeyword).limit(1).get()
             .then(snapshot => {
@@ -148,12 +158,14 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     console.log('topic id = ' + topic.id);
                     return getQuestionByTopicId(topic.id).then(question => {
                         console.log('question : ' + question.wording);
-                        agent.add(question.wording);
                         agent.setContext({
                             name: 'quiz',
                             lifespan: 1,
                             parameters: { question: question }
                         });
+                        agent.add(question.wording);
+                        question.options.forEach(option => agent.add(new Suggestion(option)));
+
                         return Promise.resolve('done');
                     }
                     ).catch(error => console.log('ERROR - getQuestionByTopicId: ' + error));
@@ -214,17 +226,25 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     function showLearningObject(agent, learningObject) {
         console.log('object type: ' + learningObject.data().type);
-        if (learningObject.data().type === 'image' || learningObject.data().type === 'video') {
-            console.log('it is an image or a video');
-            agent.add(new Card({
-                title: learningObject.data().name,
-                imageUrl: learningObject.data().type === 'image' ? learningObject.data().url : videoPlayerThumbnail,
-                text: learningObject.data().description,
-                buttonText: 'Ver',
-                buttonUrl: learningObject.data().url
-            }));
-            agent.add('¡Mira! Puedes revisar este material sobre el tema');
+        let thumbnail;
+        if (learningObject.data().type === 'image') {
+            thumbnail = learningObject.data().url;
         }
+        else if (learningObject.data().type === 'video') {
+            thumbnail = VIDEO_ICON;
+        }
+        else if (learningObject.data().type === 'text') {
+            thumbnail = TEXT_ICON;
+        }
+        agent.add(new Card({
+            title: learningObject.data().name,
+            imageUrl: thumbnail,
+            text: learningObject.data().description,
+            buttonText: 'Ver',
+            buttonUrl: learningObject.data().url
+        }));
+        agent.add('¡Mira! Puedes revisar este material sobre el tema');
+
         console.log('the end');
         return Promise.resolve('done');
     }
@@ -341,5 +361,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     intentMap.set('AnswerQuestion', checkQuestionAnswer);
     intentMap.set('FinishTopic', finishTopic);
     intentMap.set('AvoidQuestion', handleAvoidedQuestion);
+    intentMap.set('GoToTopic', solveConceptQuestion);
     return agent.handleRequest(intentMap);
 });
